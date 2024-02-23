@@ -1,0 +1,13 @@
+name = "SpacecraftBuilder"
+uuid = "92ba2ec4-d08f-4ce1-9cdf-fe8c7bb13e53"
+authors = ["F. Capolupo"]
+version = "0.1.0"
+
+[compat]
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
