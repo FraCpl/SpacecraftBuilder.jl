@@ -3,6 +3,12 @@ uuid = "92ba2ec4-d08f-4ce1-9cdf-fe8c7bb13e53"
 authors = ["F. Capolupo"]
 version = "0.1.0"
 
+[deps]
+ControlSystems = "a6e380b2-a6ca-5380-bf3e-84a91bcd477e"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+JTools = "ab7590e3-7970-434e-bf9d-2a5e455e45fa"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
 [compat]
 julia = "1.10"
 
