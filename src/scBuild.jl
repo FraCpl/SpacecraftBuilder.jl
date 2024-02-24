@@ -132,21 +132,20 @@ end
 
 function buildss(sc::SpacecraftElement; attitudeOnly=false)
     nω = length(sc.ω)
+    M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]
+    D = diagm([zeros(6); 2sc.ξ.*sc.ω])
+    K = diagm([zeros(6); sc.ω.^2])
     if attitudeOnly
-        nx = nω + 3
         nu = 3
-        M = [sc.inertiaG_O sc.LG_O[:, 4:6]'; sc.LG_O[:, 4:6] I]
+        Bu = [zeros(3, nu); I; zeros(nω, nu)]
+        Cy = [zeros(3, 3) I zeros(3, nω)]
     else
-        nx = nω + 6
         nu = 6
-        M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]
+        Bu = [I; zeros(nω, nu)]
+        Cy = [I zeros(6, nω)]
     end
-    D = diagm([zeros(nx - nω); 2sc.ξ.*sc.ω])
-    K = diagm([zeros(nx - nω); sc.ω.^2])
-    Bu = [I; zeros(nω, nu)]
-    Cy = [I zeros(nx - nω, nω)]
-    A = [zeros(nx, nx) I; -M\K -M\D]
-    B = [zeros(nx, nu); M\Bu]
+    A = [zeros(6 + nω, 6 + nω) I; -M\K -M\D]
+    B = [zeros(6 + nω, nu); M\Bu]
     C = [Cy zeros(size(Cy))]
     return ss(A, B, C, 0)
 end
