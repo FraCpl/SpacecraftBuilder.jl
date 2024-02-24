@@ -29,8 +29,8 @@ mutable struct FlexibleElement <: SpacecraftElement
     inertiaG_O::Matrix{Float64}     # Automatically computed
     LO_O::Matrix{Float64}           # Automatically computed
     LG_O::Matrix{Float64}           # Automatically computed
-    ω::Vector{Float64}              # Input
-    ξ::Vector{Float64}              # Input
+    freq::Vector{Float64}           # Input
+    damp::Vector{Float64}           # Input
 end
 
 function SpacecraftElement(;
@@ -42,10 +42,10 @@ function SpacecraftElement(;
         R_OE::Matrix{Float64}=Matrix(1.0I, 3, 3),
         posEG_E::Vector{Float64}=zeros(3),
         posOE_O::Vector{Float64}=zeros(3),
-        ω::Vector{Float64}=[NaN],
-        ξ::Vector{Float64}=[NaN],
-        LE_E::Matrix{Float64}=zeros(length(ω), 6),      # [Translation, Rotation]
-        LG_E::Matrix{Float64}=zeros(length(ω), 6),      # [Translation, Rotation]
+        freq::Vector{Float64}=[NaN],
+        damp::Vector{Float64}=[NaN],
+        LE_E::Matrix{Float64}=zeros(length(freq), 6),      # [Translation, Rotation]
+        LG_E::Matrix{Float64}=zeros(length(freq), 6),      # [Translation, Rotation]
     )
 
     # CoM position
@@ -65,7 +65,7 @@ function SpacecraftElement(;
     inertiaG_O = rotateInertia(R_OE, inertiaG_E)
     inertiaO_O = translateInertia(inertiaG_O, mass, posOG_O)
 
-    if isnan(ω[1])
+    if isnan(freq[1])
         # Return rigid element
         return RigidElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O)
     end
@@ -83,10 +83,10 @@ function SpacecraftElement(;
     verifyResidualMass(ID, mass, inertiaG_O, LG_O)
 
     # Sort things out
-    id = sortperm(ω)
+    id = sortperm(freq)
 
     # Return flexible element
-    return FlexibleElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O, LO_O[id, :], LG_O[id, :], ω[id], ξ[id])
+    return FlexibleElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O, LO_O[id, :], LG_O[id, :], freq[id], damp[id])
 end
 
 function Base.show(io::IO, obj::SpacecraftElement)
@@ -98,8 +98,8 @@ function Base.show(io::IO, obj::SpacecraftElement)
     println("  Ixx, Iyy, Izz: $(round.(diag(obj.inertiaG_O), digits=1)) kg m²")
     println("  Ixy, Ixz, Iyz: $(round.([obj.inertiaG_O[1, 2], obj.inertiaG_O[1, 3], obj.inertiaG_O[2, 3]], digits=1)) kg m²")
     #if typeof(obj) == FlexibleElement
-    #    println("ω:          $(round.(obj.ω, digits=2)) rad/s")
-    #    println("ξ:          $(round.(obj.ξ*100, digits=2)) %")
+    #    println("freq:          $(round.(obj.freq, digits=2)) rad/s")
+    #    println("damp:          $(round.(obj.damp*100, digits=2)) %")
     #    println("LO_O:       $(round.(obj.LO_O, digits=2))")
     #end
 end

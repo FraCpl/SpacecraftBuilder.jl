@@ -10,6 +10,8 @@ rotateModalMatrix(R_BA, L_A) = L_A*[R_BA' zeros(3, 3); zeros(3, 3) R_BA']       
 translateInertia(JG_X, mass, posGA_X) = JG_X - mass*crossmat(posGA_X)^2    # JA_X
 translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
+verifyInertia(J) = verifyInertia("_", J)
+
 function verifyInertia(ID, J)
     if maximum(abs.(J - J')) > 1e-8
         println("Warning: the inertia matrix of $ID is not symmetric")

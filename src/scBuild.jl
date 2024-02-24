@@ -33,8 +33,8 @@ function build(elements::Vector; plotModel=false)
     posOG_O = zeros(3)
     inertiaO_O = zeros(3, 3)
     LO_O = zeros(1, 6)
-    ω = [NaN]
-    ξ = [NaN]
+    freq = [NaN]
+    damp = [NaN]
     hasFlex = false
 
     # Cycle through different elements
@@ -46,14 +46,14 @@ function build(elements::Vector; plotModel=false)
 
         if typeof(el) == FlexibleElement
             LO_O = [LO_O; copy(el.LO_O)]
-            ω = [ω; copy(el.ω)]
-            ξ = [ξ; copy(el.ξ)]
+            freq = [freq; copy(el.freq)]
+            damp = [damp; copy(el.damp)]
 
             if !hasFlex
                 # Remove NaN values
                 LO_O = LO_O[2:end, :]
-                ω = ω[2:end]
-                ξ = ξ[2:end]
+                freq = freq[2:end]
+                damp = damp[2:end]
                 hasFlex = true
             end
         end
@@ -77,29 +77,29 @@ function build(elements::Vector; plotModel=false)
 
     # Return assembled spacecraft element
     return SpacecraftElement(ID=ID[4:end], mass=mass, inertiaE_E=inertiaO_O, posEG_E=posOG_O,
-        ω=ω, ξ=ξ, LE_E=LO_O)
+        freq=freq, damp=damp, LE_E=LO_O)
 end
 
-function buildss(elements::Vector; attitudeOnly=false)
-    return buildss(build(elements); attitudeOnly=attitudeOnly)
+function getLTI(elements::Vector; attitudeOnly=false)
+    return getLTI(build(elements); attitudeOnly=attitudeOnly)
 end
 
-function buildss(sc::SpacecraftElement; attitudeOnly=false)
-    nω = length(sc.ω)
+function getLTI(sc::SpacecraftElement; attitudeOnly=false)
+    nf = length(sc.freq)
     M, D, K = getMDK(sc)
     if attitudeOnly
         nu = 3
-        Bu = [zeros(3, nu); I; zeros(nω, nu)]
-        Cy = [zeros(3, 3) I zeros(3, nω)]
+        Bu = [zeros(3, nu); I; zeros(nf, nu)]
+        Cy = [zeros(3, 3) I zeros(3, nf)]
     else
         nu = 6
-        Bu = [I; zeros(nω, nu)]
-        Cy = [I zeros(6, nω)]
+        Bu = [I; zeros(nf, nu)]
+        Cy = [I zeros(6, nf)]
     end
-    A = [zeros(6 + nω, 6 + nω) I; -M\K -M\D]
-    B = [zeros(6 + nω, nu); M\Bu]
+    A = [zeros(6 + nf, 6 + nf) I; -M\K -M\D]
+    B = [zeros(6 + nf, nu); M\Bu]
     C = [Cy zeros(size(Cy))]
-    return ss(A, B, C, 0)
+    return A, B, C, 0
 end
 
 function getMDK(sc::SpacecraftElement)
@@ -107,7 +107,7 @@ function getMDK(sc::SpacecraftElement)
         return [sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O], zeros(6, 6), zeros(6, 6)
     end
     M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]
-    D = diagm([zeros(6); 2sc.ξ.*sc.ω])
-    K = diagm([zeros(6); sc.ω.^2])
+    D = diagm([zeros(6); 2sc.damp.*sc.freq])
+    K = diagm([zeros(6); sc.freq.^2])
     return M, D, K
 end
