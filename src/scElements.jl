@@ -33,23 +33,8 @@ mutable struct FlexibleElement <: SpacecraftElement
     ξ::Vector{Float64}              # Input
 end
 
-function RigidElement(;
-        ID::String="R-Element",
-        mass::Float64=0.0,
-        inertiaE_E::Matrix{Float64}=zeros(3, 3),        # [OPT1] Inertia
-        inertiaG_E::Matrix{Float64}=zeros(3, 3),        # [OPT2] Inertia
-        geometry::SpacecraftGeometry=NoGeometry(),
-        R_OE::Matrix{Float64}=Matrix(1.0I, 3, 3),
-        posEG_E::Vector{Float64}=zeros(3),
-        posOE_O::Vector{Float64}=zeros(3)
-    )
-
-    return initElement(ID=ID, geometry=geometry, mass=mass, inertiaE_E=inertiaE_E,
-        inertiaG_E=inertiaG_E, R_OE=R_OE, posEG_E=posEG_E, posOE_O=posOE_O)
-end
-
-function FlexibleElement(;
-        ID::String="F-Element",
+function SpacecraftElement(;
+        ID::String="Element",
         mass::Float64=0.0,
         inertiaE_E::Matrix{Float64}=zeros(3, 3),        # [OPT1] Inertia
         inertiaG_E::Matrix{Float64}=zeros(3, 3),        # [OPT2] Inertia
@@ -63,9 +48,45 @@ function FlexibleElement(;
         LG_E::Matrix{Float64}=zeros(length(ω), 6),      # [Translation, Rotation]
     )
 
-    return initElement(ID=ID, geometry=geometry, mass=mass, inertiaE_E=inertiaE_E,
-        inertiaG_E=inertiaG_E, R_OE=R_OE, posEG_E=posEG_E, posOE_O=posOE_O, ω=ω, ξ=ξ,
-        LE_E=LE_E, LG_E=LG_E)
+    # CoM position
+    posOG_O = posOE_O + R_OE*posEG_E
+
+    # Compute inertias
+    if any(inertiaE_E .!= 0.0)
+        verifyInertia(ID, inertiaE_E)
+        inertiaG_E .= translateInertia(inertiaE_E, -mass, posEG_E)
+    elseif any(inertiaG_E .!= 0.0)
+        verifyInertia(ID, inertiaG_E)
+        inertiaE_E .= translateInertia(inertiaG_E, +mass, posEG_E)
+    else
+        inertiaG_E .= elementInertiaG_E(geometry, mass)
+        inertiaE_E .= translateInertia(inertiaG_E, +mass, posEG_E)
+    end
+    inertiaG_O = rotateInertia(R_OE, inertiaG_E)
+    inertiaO_O = translateInertia(inertiaG_O, mass, posOG_O)
+
+    if isnan(ω[1])
+        # Return rigid element
+        return RigidElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O)
+    end
+
+    # Modal participation matrix
+    if any(LE_E .!= 0.0)
+        LG_E .= translateModalMatrix(LE_E, posEG_E)
+    else
+        LE_E .= translateModalMatrix(LG_E, -posEG_E)
+    end
+    LG_O = rotateModalMatrix(R_OE, LG_E)
+    LO_O = translateModalMatrix(LG_O, -posOG_O)
+
+    # Verify residual mass matrix
+    verifyResidualMass(ID, mass, inertiaG_O, LG_O)
+
+    # Sort things out
+    id = sortperm(ω)
+
+    # Return flexible element
+    return FlexibleElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O, LO_O[id, :], LG_O[id, :], ω[id], ξ[id])
 end
 
 function Base.show(io::IO, obj::SpacecraftElement)

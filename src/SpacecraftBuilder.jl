@@ -11,10 +11,10 @@ include("utils.jl")
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere
 include("scGeometry.jl")
 
-export RigidElement, FlexibleElement
+export SpacecraftElement
 include("scElements.jl")
 
-export build, buildss
+export build, buildss, getMDK
 include("scBuild.jl")
 
 end

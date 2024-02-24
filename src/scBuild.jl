@@ -1,60 +1,3 @@
-function initElement(;
-        ID::String="Element",
-        mass::Float64=0.0,
-        inertiaE_E::Matrix{Float64}=zeros(3, 3),        # [OPT1] Inertia
-        inertiaG_E::Matrix{Float64}=zeros(3, 3),        # [OPT2] Inertia
-        geometry::SpacecraftGeometry=NoGeometry(),
-        R_OE::Matrix{Float64}=Matrix(1.0I, 3, 3),
-        posEG_E::Vector{Float64}=zeros(3),
-        posOE_O::Vector{Float64}=zeros(3),
-        ω::Vector{Float64}=[NaN],
-        ξ::Vector{Float64}=[NaN],
-        LE_E::Matrix{Float64}=zeros(length(ω), 6),      # [OPT1] Modal participation matrix = [Translation, Rotation]
-        LG_E::Matrix{Float64}=zeros(length(ω), 6),      # [OPT2] Modal participation matrix = [Translation, Rotation]
-    )
-
-    # CoM position
-    posOG_O = posOE_O + R_OE*posEG_E
-
-    # Compute inertias
-    if any(inertiaE_E .!= 0.0)
-        verifyInertia(ID, inertiaE_E)
-        inertiaG_E .= translateInertia(inertiaE_E, -mass, posEG_E)
-    elseif any(inertiaG_E .!= 0.0)
-        verifyInertia(ID, inertiaG_E)
-        inertiaE_E .= translateInertia(inertiaG_E, +mass, posEG_E)
-    else
-        inertiaG_E .= elementInertiaG_E(geometry, mass)
-        inertiaE_E .= translateInertia(inertiaG_E, +mass, posEG_E)
-    end
-    inertiaG_O = rotateInertia(R_OE, inertiaG_E)
-    inertiaO_O = translateInertia(inertiaG_O, mass, posOG_O)
-
-    if isnan(ω[1])
-        # Return rigid element
-        return RigidElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O)
-    end
-
-    # Modal participation matrix
-    if any(LE_E .!= 0.0)
-        LG_E .= translateModalMatrix(LE_E, posEG_E)
-    else
-        LE_E .= translateModalMatrix(LG_E, -posEG_E)
-    end
-    LG_O = rotateModalMatrix(R_OE, LG_E)
-    LO_O = translateModalMatrix(LG_O, -posOG_O)
-
-    # Verify residual mass matrix
-    verifyResidualMass(ID, mass, inertiaG_O, LG_O)
-
-    # Sort things out
-    id = sortperm(ω)
-
-    # Return flexible element
-    return FlexibleElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O, LO_O[id, :], LG_O[id, :], ω[id], ξ[id])
-end
-
-
 #=
 # from O to Q (=new O)
 function transformElement!(el::SpacecraftElement, posQO_Q=zeros(3), R_QO=I)
@@ -84,6 +27,7 @@ function build(elements::Vector; plotModel=false)
         p3d = LScene(f[1, 1]; show_axis=false)
     end
 
+    # Init parameters
     ID = ""
     mass = 0.0
     posOG_O = zeros(3)
@@ -92,6 +36,8 @@ function build(elements::Vector; plotModel=false)
     ω = [NaN]
     ξ = [NaN]
     hasFlex = false
+
+    # Cycle through different elements
     for el in elements
         ID = ID*" + "*el.ID
         mass += el.mass
@@ -102,6 +48,7 @@ function build(elements::Vector; plotModel=false)
             LO_O = [LO_O; copy(el.LO_O)]
             ω = [ω; copy(el.ω)]
             ξ = [ξ; copy(el.ξ)]
+
             if !hasFlex
                 # Remove NaN values
                 LO_O = LO_O[2:end, :]
@@ -119,6 +66,8 @@ function build(elements::Vector; plotModel=false)
             scatter!(p3d, el.posOE_O[1], el.posOE_O[2], el.posOE_O[3]; markersize=10)   # This gets hidden by the mesh!
         end
     end
+
+    # Normalize CoM position wrt total mass
     posOG_O ./= mass
 
     if plotModel
@@ -126,15 +75,18 @@ function build(elements::Vector; plotModel=false)
         display(f)
     end
 
-    return initElement(ID=ID[4:end], mass=mass, inertiaE_E=inertiaO_O, posEG_E=posOG_O, ω=ω, ξ=ξ, LE_E=LO_O)
+    # Return assembled spacecraft element
+    return SpacecraftElement(ID=ID[4:end], mass=mass, inertiaE_E=inertiaO_O, posEG_E=posOG_O,
+        ω=ω, ξ=ξ, LE_E=LO_O)
 end
 
+function buildss(elements::Vector; attitudeOnly=false)
+    return buildss(build(elements); attitudeOnly=attitudeOnly)
+end
 
 function buildss(sc::SpacecraftElement; attitudeOnly=false)
     nω = length(sc.ω)
-    M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]
-    D = diagm([zeros(6); 2sc.ξ.*sc.ω])
-    K = diagm([zeros(6); sc.ω.^2])
+    M, D, K = getMDK(sc)
     if attitudeOnly
         nu = 3
         Bu = [zeros(3, nu); I; zeros(nω, nu)]
@@ -148,4 +100,14 @@ function buildss(sc::SpacecraftElement; attitudeOnly=false)
     B = [zeros(6 + nω, nu); M\Bu]
     C = [Cy zeros(size(Cy))]
     return ss(A, B, C, 0)
+end
+
+function getMDK(sc::SpacecraftElement)
+    if typeof(sc) == RigidElement
+        return [sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O], zeros(6, 6), zeros(6, 6)
+    end
+    M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]
+    D = diagm([zeros(6); 2sc.ξ.*sc.ω])
+    K = diagm([zeros(6); sc.ω.^2])
+    return M, D, K
 end
