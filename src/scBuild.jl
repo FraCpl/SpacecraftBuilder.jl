@@ -85,8 +85,8 @@ function getLTI(elements::Vector; attitudeOnly=false)
 end
 
 function getLTI(sc::SpacecraftElement; attitudeOnly=false)
-    nf = length(sc.freq)
     M, D, K = getMDK(sc)
+    nf = typeof(sc) == FlexibleElement ? length(sc.freq) : 0
     if attitudeOnly
         nu = 3
         Bu = [zeros(3, nu); I; zeros(nf, nu)]
