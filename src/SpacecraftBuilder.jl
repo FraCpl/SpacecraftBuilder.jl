@@ -17,4 +17,7 @@ include("scElements.jl")
 export build, getLTI, getMDK
 include("scBuild.jl")
 
+export rayTracingDrag, rayTracingSrp, rayTracingSurface
+include("rayTracingUtils.jl")
+
 end
