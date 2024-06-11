@@ -3,8 +3,9 @@ module SpacecraftBuilder
 using JTools
 using LinearAlgebra
 using GLMakie
+using GeometryBasics
 
-export verifyInertia
+export verifyInertia, randomInertia, translateInertia, rotateInertia
 include("utils.jl")
 
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere
