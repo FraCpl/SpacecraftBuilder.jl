@@ -19,16 +19,21 @@ const DEFAULT_NRAYS = 1_000_000
     E13 = tri[3] - tri[1]
     P = ray.dir × E13
     detM = dot(P, E12)
-
-    if abs(detM) ≤ EPS_PARALLEL; return; end
+    if abs(detM) ≤ EPS_PARALLEL
+        return
+    end
 
     T = ray.origin - tri[1]
     u = dot(P, T)/detM
-    if u < ZERO_WITH_TOL || u > ONE_WITH_TOL; return; end
+    if u < ZERO_WITH_TOL || u > ONE_WITH_TOL
+        return
+    end
 
     Q = T × E12
     v = dot(Q, ray.dir)/detM
-    if v < ZERO_WITH_TOL || u + v > ONE_WITH_TOL; return; end
+    if v < ZERO_WITH_TOL || u + v > ONE_WITH_TOL
+        return
+    end
 
     t = dot(E13, Q)/detM
     if t > EPS_MIN_DIST && t < ray.t
@@ -59,13 +64,39 @@ function rayTracingDrag(model::GeometryBasics.Mesh, dirVel::Vector{Float64}, Qdy
     return forceDrag, torqueDrag
 end
 
+# Newton theory for hypersonic flow
+# dirVel is the direction of the velocity of the body (and not the direction of the flow as`
+# seen from the body).
+#
+# The output torque is computed with respect to the origin of the 3D model provided as input,
+# or with respect to the point specified by the optional argument 'posRef'.
+#
+# To compute drag, lift, and torque coefficients instead of drag, lift and torque, just set
+# the dynamic pressure to 1.0, and divide the outputs by the reference surface of the body
+# (to be chosen by the user).
+#
+# References:
+# [1] Anderson, Fundamentals of Aerodynamics
+# [2] Heybey, Newtonian Aerodynamics for General Body Shapes with Several Applications,
+#     https://ntrs.nasa.gov/api/citations/19660012440/downloads/19660012440.pdf
+function rayTracingHypersonicAero(model::GeometryBasics.Mesh, dirVel::Vector{Float64}, Qdyn=1.0, CpMax=1.84; Nrays::Int=DEFAULT_NRAYS, posRef=zeros(3))
+    dvel = normalize(dirVel)
+    force, torque = rayTracingSrp(model, dvel; Nrays=Nrays, Nrec=1, mode=:hyper)
+    force *= CpMax*Qdyn
+    torque *= CpMax*Qdyn
+    torque -= posRef × force
+    drag = dot(force, -dvel).*(-dvel)
+    lift = force - drag
+    return drag, lift, torque
+end
+
 function rayTracingSurface(model::GeometryBasics.Mesh, dirObs::Vector{Float64}; Nrays::Int=DEFAULT_NRAYS)
     return rayTracingSrp(model, dirObs; Nrays=Nrays, Nrec=1, mode=:surf)[1]
 end
 
-function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{Float64}, Psrp=1.0; Nrays::Int=DEFAULT_NRAYS, Nrec=3, mode=:srp)
+@views function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{Float64}, Psrp=1.0; Nrays::Int=DEFAULT_NRAYS, Nrec=3, mode=:srp)
 
-    anyIntersection = mode != :srp
+    anyIntersection = !(mode == :srp || mode == :hyper)
     α = 0.7; rd = 0.1; rs = 0.2
 
     # Model box
@@ -88,14 +119,14 @@ function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{Float64}, Psrp
     # Intersect model
     surf = 0.0; posCoP = zeros(3)
     forceSrp = zeros(3); torqueSrp = zeros(3)
-    for ray in rays
+    @inbounds for ray in rays
         # Check if the ray intersects the object's bounding box
         if intersect!(ray, bboxMin, bboxMax)
             psrp = Psrp
             # Initialize ray recursion
-            for n in 1:Nrec
+            @inbounds for n in 1:Nrec
                 # Intersect ray with entire model (closest intersection)
-                for k in eachindex(model)
+                @inbounds for k in eachindex(model)
                     intersect!(ray, model[k], k)
                     if anyIntersection && ray.t < Inf; break; end
                 end
@@ -116,6 +147,13 @@ function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{Float64}, Psrp
                         ray.dir = newDir
                         ray.origin = posHit + RAY_SHIFT*newDir
                     end
+                elseif mode == :hyper
+                    # Newton theory for hypersonic aerodynamics
+                    N, cosθ, ~ = rayReflection(model[ray.idxFace], ray)     # N is the outward normal
+                    frc = -N*cosθ*Ap                                        # sinα = sin(π/2 - θ) = cosθ, Ap = dS*cosθ = dS*sinα,
+                    posHit = ray.origin + ray.t*ray.dir
+                    torqueSrp += posHit × frc
+                    forceSrp += frc
                 else
                     # Compute surface and center of pressure
                     surf += Ap
@@ -127,6 +165,8 @@ function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{Float64}, Psrp
 
     # Output
     if mode == :srp
+        return forceSrp, torqueSrp
+    elseif mode == :hyper
         return forceSrp, torqueSrp
     else
         return surf, posCoP./surf

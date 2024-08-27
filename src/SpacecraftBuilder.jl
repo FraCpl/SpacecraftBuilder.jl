@@ -19,7 +19,7 @@ include("scElements.jl")
 export build, getLTI, getMDK
 include("scBuild.jl")
 
-export rayTracingDrag, rayTracingSrp, rayTracingSurface
+export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero
 include("rayTracingUtils.jl")
 
 end
