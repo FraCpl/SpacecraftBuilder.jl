@@ -7,7 +7,7 @@ using LinearAlgebra
 using GLMakie
 using GeometryBasics
 
-export verifyInertia, randomInertia, translateInertia, rotateInertia
+export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci
 include("utils.jl")
 
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere

@@ -41,37 +41,39 @@ function build(elements::Vector; plotModel=false)
 
     # Cycle through different elements
     for el in elements
-        ID = ID*" + "*el.ID
-        mass += el.mass
-        posOG_O .+= el.mass*el.posOG_O
-        inertiaO_O .+= el.inertiaO_O
+        if el.mass > 0.0
+            ID = ID*" + "*el.ID
+            mass += el.mass
+            posOG_O .+= el.mass*el.posOG_O
+            inertiaO_O .+= el.inertiaO_O
 
-        if typeof(el) == FlexibleElement
-            LO_O = [LO_O; copy(el.LO_O)]
-            freq = [freq; copy(el.freq)]
-            damp = [damp; copy(el.damp)]
+            if typeof(el) == FlexibleElement
+                LO_O = [LO_O; copy(el.LO_O)]
+                freq = [freq; copy(el.freq)]
+                damp = [damp; copy(el.damp)]
 
-            if !hasFlex
-                # Remove NaN values
-                LO_O = LO_O[2:end, :]
-                freq = freq[2:end]
-                damp = damp[2:end]
-                hasFlex = true
-            end
-        end
-
-        if plotModel
-            if typeof(el.geometry) == Cuboid
-                if isFirst
-                    model = cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE)
-                    isFirst = false
-                else
-                    model = mergeMesh(model, cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE))
+                if !hasFlex
+                    # Remove NaN values
+                    LO_O = LO_O[2:end, :]
+                    freq = freq[2:end]
+                    damp = damp[2:end]
+                    hasFlex = true
                 end
-                #mesh!(p3d, cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE); color=:lawngreen, alpha=0.5)
             end
-            plotframe!(p3d, el.posOG_O, el.R_OE, 2.0)
-            scatter!(p3d, el.posOE_O[1], el.posOE_O[2], el.posOE_O[3]; markersize=10)   # This gets hidden by the mesh!
+
+            if plotModel
+                if typeof(el.geometry) == Cuboid
+                    if isFirst
+                        model = cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE)
+                        isFirst = false
+                    else
+                        model = mergeMesh(model, cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE))
+                    end
+                    #mesh!(p3d, cuboidModel(el.geometry.lx, el.geometry.ly, el.geometry.lz; pos_I=el.posOG_O, R_IB=el.R_OE); color=:lawngreen, alpha=0.5)
+                end
+                plotframe!(p3d, el.posOG_O, el.R_OE, 2.0)
+                scatter!(p3d, el.posOE_O[1], el.posOE_O[2], el.posOE_O[3]; markersize=10)   # This gets hidden by the mesh!
+            end
         end
     end
 

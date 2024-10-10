@@ -71,3 +71,17 @@ function randomInertia(Jnom::Matrix{Float64}, err::Vector{Float64})::Matrix{Floa
     A = (1.0 .+ err).*(sum(Jdiag)/2 .- Jdiag)
     return R*diagm(sum(A) .- A)*R'
 end
+
+function massMatrix2mci(MQ_B)
+    if !isdiag(MQ_B[1:3, 1:3])
+        @warn("Waring: mass not diagonal")
+    end
+    if norm(MQ_B - MQ_B') > 1e-9
+        @warn("Mass matrix not symmetrical")
+    end
+    mass = MQ_B[1, 1]
+    JQ_B = MQ_B[4:6, 4:6]
+    verifyInertia(JQ_B)
+    rQG_B = [-MQ_B[5, 3]; MQ_B[4, 3]; -MQ_B[4, 2]]./mass
+    return mass, rQG_B, JQ_B
+end
