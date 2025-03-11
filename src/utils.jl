@@ -8,6 +8,7 @@ rotateModalMatrix(R_BA, L_A) = L_A*[R_BA' zeros(3, 3); zeros(3, 3) R_BA']       
 # To get JG from JA, provide a negative mass!
 # JG = translateInertia(JA,-mass,posGA)
 translateInertia(JG_X, mass, posGA_X) = JG_X - mass*crossmat(posGA_X)^2    # JA_X
+translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
 translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
 verifyInertia(J; verbose=true) = verifyInertia("_", J; verbose=verbose)
