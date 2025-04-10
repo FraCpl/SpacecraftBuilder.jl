@@ -58,7 +58,7 @@ function verifyResidualMass(ID, m, J, L; verbose=true)
     eigsJ = eigvals(MR)
     if any(.!isreal(eigsJ)) || any(eigsJ .< 0.0)
         if verbose
-            @warn("Warning: the residual mass matrix of $ID is not definite positive")
+            @warn("Warning: the residual mass matrix of $ID is not definite positive ($(minimum(eigsJ)))")
         end
         return false
     end
