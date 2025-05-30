@@ -46,8 +46,23 @@ function verifyInertia(ID, J; verbose=true)
     return true
 end
 
-function verifyResidualMass(ID, m, J, L; verbose=true)
-    MR = [m*I zeros(3, 3); zeros(3, 3) J] - L'*L
+# Caution: L and J shall be provided wrt the CoM
+function verifyResidualMass(ID, m, JG, LG; verbose=true)
+
+    # Necessary but not sufficient conditions
+    r2 = [m; m; m; diag(JG)]
+    l2 = sum(LG, dims=1)[:]
+    del = r2 - l2 .< 0.0
+    lbl = ["Ltx", "Lty", "Ltz", "Lθx", "Lθy", "Lθz"]
+    for i in findall(del)
+        if verbose
+            @warn("Error with $(lbl[i])")
+        end
+    end
+    if any(del); return false; end
+
+    # Rigorous residual mass matrix check
+    MR = [m*I zeros(3, 3); zeros(3, 3) JG] - LG'*LG
     if maximum(abs.(MR - MR')) > 1e-8
         if verbose
             @warn("Warning: the residual mass matrix of $ID is not symmetric")
