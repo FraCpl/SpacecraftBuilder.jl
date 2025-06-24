@@ -9,12 +9,12 @@
 # JG = translateInertia(JA,-mass,posGA)
 @inline function translateInertia(JG_X, mass, posGA_X)
     # JA_X = JG_X - m*crossmat(posGA_X)^2
-    JA_X = Matrix{Float64}(undef, 3, 3)
-    mul!(JA_X, -mass*posGA_X, posGA_X')
-    mr2 = mass*dot(posGA_X, posGA_X)
-    JA_X[1, 1] += mr2
-    JA_X[2, 2] += mr2
-    JA_X[3, 3] += mr2
+    JA_X = posGA_X*posGA_X'
+    r2 = dot(posGA_X, posGA_X)
+    JA_X[1, 1] -= r2
+    JA_X[2, 2] -= r2
+    JA_X[3, 3] -= r2
+    JA_X .*= -mass
     JA_X .+= JG_X
     return JA_X
 end
