@@ -7,7 +7,18 @@
 #
 # To get JG from JA, provide a negative mass!
 # JG = translateInertia(JA,-mass,posGA)
-@inline translateInertia(JG_X, mass, posGA_X) = JG_X - mass*crossmat(posGA_X)^2    # JA_X
+@inline function translateInertia(JG_X, mass, posGA_X)
+    # JA_X = JG_X - m*crossmat(posGA_X)^2
+    JA_X = Matrix{Float64}(undef, 3, 3)
+    mul!(JA_X, -mass*posGA_X, posGA_X')
+    mr2 = mass*dot(posGA_X, posGA_X)
+    JA_X[1, 1] += mr2
+    JA_X[2, 2] += mr2
+    JA_X[3, 3] += mr2
+    JA_X .+= JG_X
+    return JA_X
+end
+
 @inline translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
 @inline translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
