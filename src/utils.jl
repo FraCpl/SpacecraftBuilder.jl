@@ -92,6 +92,7 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
     return true
 end
 
+randomInertia(Jnom, errPerc::Float64, rng) = randomInertia(Jnom, errPerc*randn(rng, 3))::Matrix{Float64}
 randomInertia(Jnom, errPerc::Float64) = randomInertia(Jnom, errPerc*randn(3))::Matrix{Float64}
 function randomInertia(Jnom::Matrix{Float64}, err::Vector{Float64})::Matrix{Float64}
     Jdiag, R = eigen(Jnom)
