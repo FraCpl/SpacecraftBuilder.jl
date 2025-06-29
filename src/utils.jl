@@ -25,7 +25,7 @@ end
 end
 
 @inline function translateInertia!(JA_X, JG_X, mass, posGA_X)
-    vvt!(JA_X, posGA_X)
+    vvt!(JA_X, posGA_X) # faster than mul(JA_X, posGA_X, posGA_X')
     r2 = dot(posGA_X, posGA_X)
     JA_X[1, 1] -= r2
     JA_X[2, 2] -= r2
