@@ -25,7 +25,7 @@ end
 end
 
 @inline function translateInertia!(JA_X, JG_X, mass, posGA_X)
-    mul!(JA_X, posGA_X, posGA_X')
+    vvt!(JA_X, posGA_X)
     r2 = dot(posGA_X, posGA_X)
     JA_X[1, 1] -= r2
     JA_X[2, 2] -= r2
@@ -33,6 +33,13 @@ end
     @. JA_X = -mass*JA_X + JG_X
     # JA_X .*= -mass
     # JA_X .+= JG_X
+    return
+end
+
+@inline function vvt!(M, v)
+    @inbounds for i in 1:3, j in 1:3
+        M[i, j] = v[i]*v[j]
+    end
     return
 end
 
