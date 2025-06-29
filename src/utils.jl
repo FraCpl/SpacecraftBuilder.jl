@@ -30,8 +30,9 @@ end
     JA_X[1, 1] -= r2
     JA_X[2, 2] -= r2
     JA_X[3, 3] -= r2
-    JA_X .*= -mass
-    JA_X .+= JG_X
+    @. JA_X = -mass*JA_X + JG_X
+    # JA_X .*= -mass
+    # JA_X .+= JG_X
     return
 end
 
