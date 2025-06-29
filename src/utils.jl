@@ -1,4 +1,15 @@
-@inline rotateInertia(R_BA, J_A) = R_BA*J_A*R_BA'  # J_B
+@inline function rotateInertia(R_BA, J_A)
+    J_B = similar(J_A)
+    rotateInertia!(J_B, R_BA, J_A)
+    return J_B
+end
+
+@inline function rotateInertia!(J_B, R_BA, J_A, tmp3x3=similar(J_A))
+    mul!(tmp3x3, J_A, transpose(R_BA))
+    mul!(J_B, R_BA, tmp3x3)
+    return
+end
+
 @inline rotateModalMatrix(R_BA, L_A) = L_A*[R_BA' zeros(3, 3); zeros(3, 3) R_BA']         # L_B
 
 # posGA = position of point A wrt element CoM (G).
@@ -8,24 +19,35 @@
 # To get JG from JA, provide a negative mass!
 # JG = translateInertia(JA,-mass,posGA)
 @inline function translateInertia(JG_X, mass, posGA_X)
-    # JA_X = JG_X - m*crossmat(posGA_X)^2
-    JA_X = posGA_X*posGA_X'
+    JA_X = similar(JG_X)
+    translateInertia!(JA_X, JG_X, mass, posGA_X)
+    return JA_X
+end
+
+@inline function translateInertia!(JA_X, JG_X, mass, posGA_X)
+    mul!(JA_X, posGA_X, posGA_X')
     r2 = dot(posGA_X, posGA_X)
     JA_X[1, 1] -= r2
     JA_X[2, 2] -= r2
     JA_X[3, 3] -= r2
     JA_X .*= -mass
     JA_X .+= JG_X
-    return JA_X
+    return
 end
 
 @inline translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
+
+@inline function translateInertiaToCoM!(JG_X, JA_X, mass, posGA_X)
+    translateInertia!(JG_X, JA_X, -mass, posGA_X)
+    return
+end
+
 @inline translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
 verifyInertia(J; verbose=true) = verifyInertia("_", J; verbose=verbose)
 
 function verifyInertia(ID, J; verbose=true)
-    if maximum(abs.(J - J')) > 1e-8
+    if maximum(abs, J - J') > 1e-8
         if verbose
             @warn("Warning: the inertia matrix of $ID is not symmetric")
         end

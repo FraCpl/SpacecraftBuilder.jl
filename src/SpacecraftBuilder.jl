@@ -8,6 +8,7 @@ using GLMakie
 using GeometryBasics
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
+export translateInertia!, translateInertiaToCoM!, rotateInertia!
 include("utils.jl")
 
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere
