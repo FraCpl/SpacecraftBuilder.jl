@@ -10,6 +10,10 @@ end
     return
 end
 
+@inline function rotateInertia(R_BA::SMatrix{3, 3, T}, J_A::SMatrix{3, 3, T}) where T
+    return R_BA*J_A*transpose(R_BA)
+end
+
 @inline rotateModalMatrix(R_BA, L_A) = L_A*[R_BA' zeros(3, 3); zeros(3, 3) R_BA']         # L_B
 
 # posGA = position of point A wrt element CoM (G).
@@ -34,6 +38,10 @@ end
     # JA_X .*= -mass
     # JA_X .+= JG_X
     return
+end
+
+@inline function translateInertia(JG_X::SMatrix{3, 3, T}, mass, posGA_X::SVector{3, T}) where T
+    return JG_X - mass*crossMatSq(posGA_X)
 end
 
 @inline function vvt!(M, v)
