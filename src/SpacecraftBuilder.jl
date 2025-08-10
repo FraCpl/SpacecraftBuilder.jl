@@ -3,11 +3,9 @@
 module SpacecraftBuilder
 
 using JTools
-using Quaternions
 using LinearAlgebra
 using GLMakie
 using GeometryBasics
-using StaticArrays
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
 export translateInertia!, translateInertiaToCoM!, rotateInertia!

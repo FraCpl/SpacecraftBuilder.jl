@@ -4,15 +4,33 @@
     return J_B
 end
 
-@inline function rotateInertia!(J_B, R_BA, J_A, tmp3x3=similar(J_A))
-    mul!(tmp3x3, J_A, transpose(R_BA))
-    mul!(J_B, R_BA, tmp3x3)
+@inline function rotateInertia!(J_B, R_BA, J_A)
+    # This implements J_B = R_BA*J_A*R_AB
+    r11, r21, r31, r12, r22, r32, r13, r23, r33 = R_BA
+    Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = J_A
+
+    c1 = Jxx*r11 + Jxy*r12 + Jxz*r13
+    c2 = Jxy*r11 + Jyy*r12 + Jyz*r13
+    c3 = Jxz*r11 + Jyz*r12 + Jzz*r13
+    c4 = Jxx*r21 + Jxy*r22 + Jxz*r23
+    c5 = Jxy*r21 + Jyy*r22 + Jyz*r23
+    c6 = Jxz*r21 + Jyz*r22 + Jzz*r23
+
+    J_B[1, 1] = c1*r11 + c2*r12 + c3*r13
+    J_B[1, 2] = c1*r21 + c2*r22 + c3*r23
+    J_B[1, 3] = c1*r31 + c2*r32 + c3*r33
+    J_B[2, 2] = c4*r21 + c5*r22 + c6*r23
+    J_B[2, 3] = c4*r31 + c5*r32 + c6*r33
+    J_B[3, 3] = (Jxx*r31 + Jxy*r32 + Jxz*r33)*r31 + (Jxy*r31 + Jyy*r32 + Jyz*r33)*r32 + (Jxz*r31 + Jyz*r32 + Jzz*r33)*r33
+    J_B[2, 1] = J_B[1, 2]
+    J_B[3, 1] = J_B[1, 3]
+    J_B[3, 2] = J_B[2, 3]
     return
 end
 
-@inline function rotateInertia(R_BA::SMatrix{3, 3, T}, J_A::SMatrix{3, 3, T}) where T
-    return R_BA*J_A*transpose(R_BA)
-end
+# @inline function rotateInertia(R_BA::SMatrix{3, 3, T}, J_A::SMatrix{3, 3, T}) where T
+#     return R_BA*J_A*transpose(R_BA)
+# end
 
 @inline rotateModalMatrix(R_BA, L_A) = L_A*[R_BA' zeros(3, 3); zeros(3, 3) R_BA']         # L_B
 
@@ -29,27 +47,25 @@ end
 end
 
 @inline function translateInertia!(JA_X, JG_X, mass, posGA_X)
-    vvt!(JA_X, posGA_X) # faster than mul(JA_X, posGA_X, posGA_X')
-    r2 = dot(posGA_X, posGA_X)
-    JA_X[1, 1] -= r2
-    JA_X[2, 2] -= r2
-    JA_X[3, 3] -= r2
-    @. JA_X = -mass*JA_X + JG_X
-    # JA_X .*= -mass
-    # JA_X .+= JG_X
+    # This implements JA_X = JG_X - mass*crossMat(posGA_X)^2
+    Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = JG_X
+    x, y, z = posGA_X
+
+    JA_X[1, 1] = Jxx + mass*(y*y + z*z)
+    JA_X[1, 2] = Jxy - mass*x*y
+    JA_X[1, 3] = Jxz - mass*x*z
+    JA_X[2, 2] = Jyy + mass*(x*x + z*z)
+    JA_X[2, 3] = Jyz - mass*y*z
+    JA_X[3, 3] = Jzz + mass*(x*x + y*y)
+    JA_X[2, 1] = JA_X[1, 2]
+    JA_X[3, 1] = JA_X[1, 3]
+    JA_X[3, 2] = JA_X[2, 3]
     return
 end
 
-@inline function translateInertia(JG_X::SMatrix{3, 3, T}, mass, posGA_X::SVector{3, T}) where T
-    return JG_X - mass*crossMatSq(posGA_X)
-end
-
-@inline function vvt!(M, v)
-    @inbounds for i in 1:3, j in 1:3
-        M[i, j] = v[i]*v[j]
-    end
-    return
-end
+# @inline function translateInertia(JG_X::SMatrix{3, 3, T}, mass, posGA_X::SVector{3, T}) where T
+#     return JG_X - mass*crossMatSq(posGA_X)
+# end
 
 @inline translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
 
