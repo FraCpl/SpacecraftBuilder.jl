@@ -3,6 +3,7 @@ using JTools
 using Quaternions
 using SpacecraftBuilder
 using GLMakie
+using RayTracingEngine
 
 function mainSc()
 

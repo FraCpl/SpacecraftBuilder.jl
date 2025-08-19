@@ -5,7 +5,7 @@ module SpacecraftBuilder
 using JTools
 using LinearAlgebra
 using GLMakie
-using GeometryBasics
+using Quaternions
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
 export translateInertia!, translateInertiaToCoM!, rotateInertia!
@@ -19,8 +19,5 @@ include("scElements.jl")
 
 export build, getLTI, getMDK
 include("scBuild.jl")
-
-export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero
-include("rayTracingUtils.jl")
 
 end
