@@ -8,7 +8,7 @@ using GLMakie
 using Quaternions
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
-export translateInertia!, translateInertiaToCoM!, rotateInertia!
+export translateInertia!, translateInertiaToCoM!, rotateInertia!, invertInertia!
 include("utils.jl")
 
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere

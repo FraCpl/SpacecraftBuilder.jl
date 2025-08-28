@@ -1,3 +1,19 @@
+@inline function invertInertia!(invJ, J)
+    Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = J
+    dj = 1/(Jxx*(Jyy*Jzz - (Jyz^2)) - Jxy*(Jxy*Jzz - Jxz*Jyz) + (Jxy*Jyz - Jxz*Jyy)*Jxz)
+    invJ[1, 1] = (Jyy*Jzz - Jyz*Jyz)*dj
+    invJ[1, 2] = (-Jxy*Jzz + Jxz*Jyz)*dj
+    invJ[1, 3] = (Jxy*Jyz - Jxz*Jyy)*dj
+    invJ[2, 2] = (Jxx*Jzz - Jxz*Jxz)*dj
+    invJ[2, 3] = (-Jxx*Jyz + Jxy*Jxz)*dj
+    invJ[3, 3] = (Jxx*Jyy - Jxy*Jxy)*dj
+
+    invJ[2, 1] = invJ[1, 2]
+    invJ[3, 1] = invJ[1, 3]
+    invJ[3, 2] = invJ[2, 3]
+    return
+end
+
 @inline function rotateInertia(R_BA, J_A)
     J_B = similar(J_A)
     rotateInertia!(J_B, R_BA, J_A)
