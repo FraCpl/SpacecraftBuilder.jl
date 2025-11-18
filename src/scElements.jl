@@ -53,15 +53,15 @@ function SpacecraftElement(;
 
     # Compute inertias
     if any(inertiaE_E .!= 0.0)
-        verifyInertia(ID, inertiaE_E)
         inertiaG_E .= translateInertiaToCoM(inertiaE_E, mass, posEG_E)
     elseif any(inertiaG_E .!= 0.0)
-        verifyInertia(ID, inertiaG_E)
         inertiaE_E .= translateInertia(inertiaG_E, mass, posEG_E)
     else
         inertiaG_E .= elementInertiaG_E(geometry, mass)
         inertiaE_E .= translateInertia(inertiaG_E, mass, posEG_E)
     end
+    verifyInertia(ID, inertiaE_E)
+    verifyInertia(ID, inertiaG_E)
     inertiaG_O = rotateInertia(R_OE, inertiaG_E)
     inertiaO_O = translateInertia(inertiaG_O, mass, posOG_O)
 
