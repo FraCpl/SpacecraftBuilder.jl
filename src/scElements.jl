@@ -34,19 +34,19 @@ mutable struct FlexibleElement <: SpacecraftElement
 end
 
 function SpacecraftElement(;
-        ID::String="Element",
-        mass::Float64=0.0,
-        inertiaE_E::Matrix{Float64}=zeros(3, 3),        # [OPT1] Inertia
-        inertiaG_E::Matrix{Float64}=zeros(3, 3),        # [OPT2] Inertia
-        geometry::SpacecraftGeometry=NoGeometry(),
-        R_OE::Matrix{Float64}=Matrix(1.0I, 3, 3),
-        posEG_E::Vector{Float64}=zeros(3),
-        posOE_O::Vector{Float64}=zeros(3),
-        freq::Vector{Float64}=[NaN],
-        damp::Vector{Float64}=[NaN],
-        LE_E::Matrix{Float64}=zeros(length(freq), 6),      # [Translation, Rotation]
-        LG_E::Matrix{Float64}=zeros(length(freq), 6),      # [Translation, Rotation]
-    )
+    ID::String = "Element",
+    mass::Float64 = 0.0,
+    inertiaE_E::Matrix{Float64} = zeros(3, 3),        # [OPT1] Inertia
+    inertiaG_E::Matrix{Float64} = zeros(3, 3),        # [OPT2] Inertia
+    geometry::SpacecraftGeometry = NoGeometry(),
+    R_OE::Matrix{Float64} = Matrix(1.0I, 3, 3),
+    posEG_E::Vector{Float64} = zeros(3),
+    posOE_O::Vector{Float64} = zeros(3),
+    freq::Vector{Float64} = [NaN],
+    damp::Vector{Float64} = [NaN],
+    LE_E::Matrix{Float64} = zeros(length(freq), 6),      # [Translation, Rotation]
+    LG_E::Matrix{Float64} = zeros(length(freq), 6),      # [Translation, Rotation]
+)
 
     # CoM position
     posOG_O = posOE_O + R_OE*posEG_E
@@ -67,7 +67,19 @@ function SpacecraftElement(;
 
     if isnan(freq[1])
         # Return rigid element
-        return RigidElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O)
+        return RigidElement(
+            ID,
+            geometry,
+            mass,
+            inertiaE_E,
+            inertiaG_E,
+            R_OE,
+            posEG_E,
+            posOE_O,
+            posOG_O,
+            inertiaO_O,
+            inertiaG_O,
+        )
     end
 
     # Modal participation matrix
@@ -86,7 +98,23 @@ function SpacecraftElement(;
     id = sortperm(freq)
 
     # Return flexible element
-    return FlexibleElement(ID, geometry, mass, inertiaE_E, inertiaG_E, R_OE, posEG_E, posOE_O, posOG_O, inertiaO_O, inertiaG_O, LO_O[id, :], LG_O[id, :], freq[id], damp[id])
+    return FlexibleElement(
+        ID,
+        geometry,
+        mass,
+        inertiaE_E,
+        inertiaG_E,
+        R_OE,
+        posEG_E,
+        posOE_O,
+        posOG_O,
+        inertiaO_O,
+        inertiaG_O,
+        LO_O[id, :],
+        LG_O[id, :],
+        freq[id],
+        damp[id],
+    )
 end
 
 function Base.show(io::IO, obj::SpacecraftElement)
@@ -96,7 +124,9 @@ function Base.show(io::IO, obj::SpacecraftElement)
     println("posOG_O:    $(round.(obj.posOG_O, digits=3)) m")
     println("inertia at CoM:")
     println("  Ixx, Iyy, Izz: $(round.(diag(obj.inertiaG_O), digits=1)) kg m²")
-    println("  Ixy, Ixz, Iyz: $(round.([obj.inertiaG_O[1, 2], obj.inertiaG_O[1, 3], obj.inertiaG_O[2, 3]], digits=1)) kg m²")
+    println(
+        "  Ixy, Ixz, Iyz: $(round.([obj.inertiaG_O[1, 2], obj.inertiaG_O[1, 3], obj.inertiaG_O[2, 3]], digits=1)) kg m²",
+    )
     #if typeof(obj) == FlexibleElement
     #    println("freq:          $(round.(obj.freq, digits=2)) rad/s")
     #    println("damp:          $(round.(obj.damp*100, digits=2)) %")

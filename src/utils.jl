@@ -37,7 +37,10 @@ end
     J_B[1, 3] = c1*r31 + c2*r32 + c3*r33
     J_B[2, 2] = c4*r21 + c5*r22 + c6*r23
     J_B[2, 3] = c4*r31 + c5*r32 + c6*r33
-    J_B[3, 3] = (Jxx*r31 + Jxy*r32 + Jxz*r33)*r31 + (Jxy*r31 + Jyy*r32 + Jyz*r33)*r32 + (Jxz*r31 + Jyz*r32 + Jzz*r33)*r33
+    J_B[3, 3] =
+        (Jxx*r31 + Jxy*r32 + Jxz*r33)*r31 +
+        (Jxy*r31 + Jyy*r32 + Jyz*r33)*r32 +
+        (Jxz*r31 + Jyz*r32 + Jzz*r33)*r33
     J_B[2, 1] = J_B[1, 2]
     J_B[3, 1] = J_B[1, 3]
     J_B[3, 2] = J_B[2, 3]
@@ -92,9 +95,9 @@ end
 
 @inline translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
-verifyInertia(J; verbose=true) = verifyInertia("_", J; verbose=verbose)
+verifyInertia(J; verbose = true) = verifyInertia("_", J; verbose = verbose)
 
-function verifyInertia(ID, J; verbose=true)
+function verifyInertia(ID, J; verbose = true)
     if maximum(abs, J - J') > 1e-8
         if verbose
             @warn("Warning: the inertia matrix of $ID is not symmetric")
@@ -110,16 +113,26 @@ function verifyInertia(ID, J; verbose=true)
         return false
     end
 
-    if !(J[1, 1] ≤ J[2, 2] + J[3, 3] && J[2, 2] ≤ J[1, 1] + J[3, 3] && J[3, 3] ≤ J[1, 1] + J[2, 2])
+    if !(
+        J[1, 1] ≤ J[2, 2] + J[3, 3] &&
+        J[2, 2] ≤ J[1, 1] + J[3, 3] &&
+        J[3, 3] ≤ J[1, 1] + J[2, 2]
+    )
         if verbose
-            @warn("Warning: the diagonal terms of the inertia matrix of $ID are not physical")
+            @warn(
+                "Warning: the diagonal terms of the inertia matrix of $ID are not physical"
+            )
         end
         return false
     end
 
-    if !(abs(J[1, 2]) <= J[3, 3]/2 && abs(J[1, 3]) <= J[2, 2]/2 && abs(J[2, 3]) <= J[1, 1]/2)
+    if !(
+        abs(J[1, 2]) <= J[3, 3]/2 && abs(J[1, 3]) <= J[2, 2]/2 && abs(J[2, 3]) <= J[1, 1]/2
+    )
         if verbose
-            @warn("Warning: the non-diagonal terms of the inertia matrix of $ID are not physical")
+            @warn(
+                "Warning: the non-diagonal terms of the inertia matrix of $ID are not physical"
+            )
         end
         return false
     end
@@ -128,11 +141,11 @@ function verifyInertia(ID, J; verbose=true)
 end
 
 # Caution: L and J shall be provided wrt the CoM
-function verifyResidualMass(ID, m, JG, LG; verbose=true)
+function verifyResidualMass(ID, m, JG, LG; verbose = true)
 
     # Necessary but not sufficient conditions
     r2 = [m; m; m; diag(JG)]
-    l2 = sum(LG, dims=1)[:]
+    l2 = sum(LG, dims = 1)[:]
     del = r2 - l2 .< 0.0
     lbl = ["Ltx", "Lty", "Ltz", "Lθx", "Lθy", "Lθz"]
     for i in findall(del)
@@ -140,7 +153,10 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
             @warn("Error with $(lbl[i])")
         end
     end
-    if any(del); return false; end
+    if any(del)
+        ;
+        return false;
+    end
 
     # Rigorous residual mass matrix check
     MR = [m*I zeros(3, 3); zeros(3, 3) JG] - LG'*LG
@@ -154,7 +170,9 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
     eigsJ = eigvals(MR)
     if any(.!isreal(eigsJ)) || any(eigsJ .< 0.0)
         if verbose
-            @warn("Warning: the residual mass matrix of $ID is not definite positive ($(minimum(eigsJ)))")
+            @warn(
+                "Warning: the residual mass matrix of $ID is not definite positive ($(minimum(eigsJ)))"
+            )
         end
         return false
     end
@@ -162,11 +180,13 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
     return true
 end
 
-randomInertia(Jnom, errPerc::Float64, rng) = randomInertia(Jnom, errPerc*randn(rng, 3))::Matrix{Float64}
-randomInertia(Jnom, errPerc::Float64) = randomInertia(Jnom, errPerc*randn(3))::Matrix{Float64}
+randomInertia(Jnom, errPerc::Float64, rng) =
+    randomInertia(Jnom, errPerc*randn(rng, 3))::Matrix{Float64}
+randomInertia(Jnom, errPerc::Float64) =
+    randomInertia(Jnom, errPerc*randn(3))::Matrix{Float64}
 function randomInertia(Jnom::Matrix{Float64}, err::Vector{Float64})::Matrix{Float64}
     Jdiag, R = eigen(Jnom)
-    A = (1.0 .+ err).*(sum(Jdiag)/2 .- Jdiag)
+    A = (1.0 .+ err) .* (sum(Jdiag)/2 .- Jdiag)
     return R*diagm(sum(A) .- A)*R'
 end
 
@@ -180,6 +200,6 @@ function massMatrix2mci(MQ_B)
     mass = MQ_B[1, 1]
     JQ_B = MQ_B[4:6, 4:6]
     verifyInertia(JQ_B)
-    rQG_B = [-MQ_B[5, 3]; MQ_B[4, 3]; -MQ_B[4, 2]]./mass
+    rQG_B = [-MQ_B[5, 3]; MQ_B[4, 3]; -MQ_B[4, 2]] ./ mass
     return mass, rQG_B, JQ_B
 end
