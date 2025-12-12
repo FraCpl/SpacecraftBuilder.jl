@@ -1,6 +1,6 @@
 using LinearAlgebra
 using JTools
-using Quaternions
+using Quats
 using SpacecraftBuilder
 using GLMakie
 using RayTracingEngine

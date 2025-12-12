@@ -1,6 +1,6 @@
 using SpacecraftBuilder
 using Test
-using Quaternions
+using Quats
 using LinearAlgebra
 
 @testset "SpacecraftBuilder.jl" begin
