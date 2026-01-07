@@ -95,29 +95,47 @@ end
 verifyInertia(J; verbose=true) = verifyInertia("_", J; verbose=verbose)
 
 function verifyInertia(ID, J; verbose=true)
-    if maximum(abs, J - J') > 1e-8
+    SYMMETRY_TOL = 1e-8
+    Jxx, Jyx, Jzx, Jxy, Jyy, Jzy, Jxz, Jyz, Jzz = J
+
+    if abs(Jxy - Jyx) > SYMMETRY_TOL
         if verbose
-            @warn("Warning: the inertia matrix of $ID is not symmetric")
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxy ≠ Jyx")
         end
         return false
     end
 
-    eigsJ = eigvals(J)
-    if any(.!isreal(eigsJ)) || any(eigsJ .< 0.0)
+    if abs(Jxz - Jzx) > SYMMETRY_TOL
         if verbose
-            @warn("Warning: the inertia matrix of $ID is not definite positive")
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxz ≠ Jzx")
         end
         return false
     end
 
-    if !(J[1, 1] ≤ J[2, 2] + J[3, 3] && J[2, 2] ≤ J[1, 1] + J[3, 3] && J[3, 3] ≤ J[1, 1] + J[2, 2])
+    if abs(Jyz - Jzy) > SYMMETRY_TOL
+        if verbose
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jyz ≠ Jzy")
+        end
+        return false
+    end
+
+    for ej in eigvals(J)
+        if ej < 0 || !isreal(ej)
+            if verbose
+                @warn("Warning: the inertia matrix of $ID is not definite positive")
+            end
+            return false
+        end
+    end
+
+    if !(Jxx ≤ Jyy + Jzz && Jyy ≤ Jxx + Jzz && Jzz ≤ Jxx + Jyy)
         if verbose
             @warn("Warning: the diagonal terms of the inertia matrix of $ID are not physical")
         end
         return false
     end
 
-    if !(abs(J[1, 2]) <= J[3, 3]/2 && abs(J[1, 3]) <= J[2, 2]/2 && abs(J[2, 3]) <= J[1, 1]/2)
+    if !(abs(Jxy) ≤ Jzz/2 && abs(Jxz) ≤ Jyy/2 && abs(Jyz) ≤ Jxx/2)
         if verbose
             @warn("Warning: the non-diagonal terms of the inertia matrix of $ID are not physical")
         end
@@ -141,8 +159,7 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
         end
     end
     if any(del)
-        ;
-        return false;
+        return false
     end
 
     # Rigorous residual mass matrix check
@@ -168,9 +185,11 @@ end
 function randomInertia(Jnom, errPerc::Float64, rng)
     randomInertia(Jnom, errPerc*randn(rng, 3))::Matrix{Float64}
 end
+
 function randomInertia(Jnom, errPerc::Float64)
     randomInertia(Jnom, errPerc*randn(3))::Matrix{Float64}
 end
+
 function randomInertia(Jnom::Matrix{Float64}, err::Vector{Float64})::Matrix{Float64}
     Jdiag, R = eigen(Jnom)
     A = (1.0 .+ err) .* (sum(Jdiag)/2 .- Jdiag)

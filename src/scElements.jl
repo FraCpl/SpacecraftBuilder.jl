@@ -60,8 +60,8 @@ function SpacecraftElement(;
         inertiaG_E .= elementInertiaG_E(geometry, mass)
         inertiaE_E .= translateInertia(inertiaG_E, mass, posEG_E)
     end
-    verifyInertia(ID, inertiaE_E)
-    verifyInertia(ID, inertiaG_E)
+    verifyInertia(ID * " at E", inertiaE_E)
+    verifyInertia(ID * " at G", inertiaG_E)
     inertiaG_O = rotateInertia(R_OE, inertiaG_E)
     inertiaO_O = translateInertia(inertiaG_O, mass, posOG_O)
 
