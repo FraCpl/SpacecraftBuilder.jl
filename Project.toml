@@ -15,6 +15,7 @@ JTools = {rev = "master", url = "C:\\Users\\francesco capolupo\\OneDrive - ESA\\
 Quats = {rev = "master", url = "C:\\Users\\francesco capolupo\\OneDrive - ESA\\Desktop\\Work\\Tools\\ToolsJulia\\Packages\\Quats"}
 
 [compat]
+GeometryBasics = "0.5.10"
 Quats = "0.1.0"
 julia = "1.10"
 

@@ -1,25 +1,4 @@
-#=
-# from O to Q (=new O)
-function transformElement!(el::SpacecraftElement, posQO_Q=zeros(3), R_QO=I)
-el.R_OE .= R_QO*el.R_OE
-el.posOE_O .= posQO_Q + R_QO*el.posOE_O
-el.posOG_O = posQO_Q + R_QO*el.posOG_O
-el.inertiaG_O = rotateInertia(R_QO, el.inertiaG_O)
-el.inertiaO_O = translateInertia(el.inertiaG_O, el.mass, el.posOG_O)
-if typeof(el) == FlexibleElement
-    el.LG_O = rotateModalMatrix(R_QO, el.LG_O)
-    el.LO_O = translateModalMatrix(el.LG_O, -el.posOG_O)
-end
-end
-
-function transformElement(el::SpacecraftElement, posQO_Q=zeros(3), R_QO=I)
-el2 = deepcopy(el)
-transformElement!(el2, posQO_Q, R_QO)
-return el2
-end
-=#
-
-function build(elements::Vector; plotModel=false)
+function build(elements::Vararg{SpacecraftElement}; plotModel=false)
     if plotModel
         set_theme!(theme_fra(true))
         f = Figure(; size=(1500, 1000));
@@ -37,27 +16,27 @@ function build(elements::Vector; plotModel=false)
     LO_O = zeros(1, 6)
     freq = [NaN]
     damp = [NaN]
-    hasFlex = false
+    isFlex = false
 
     # Cycle through different elements
     for el in elements
-        if el.mass > 0.0
+        if el.mass > 0
             ID = ID*" + "*el.ID
             mass += el.mass
             posOG_O .+= el.mass*el.posOG_O
             inertiaO_O .+= el.inertiaO_O
 
-            if typeof(el) == FlexibleElement
+            if el.isFlex
                 LO_O = [LO_O; copy(el.LO_O)]
                 freq = [freq; copy(el.freq)]
                 damp = [damp; copy(el.damp)]
 
-                if !hasFlex
+                if !isFlex
                     # Remove NaN values
                     LO_O = LO_O[2:end, :]
                     freq = freq[2:end]
                     damp = damp[2:end]
-                    hasFlex = true
+                    isFlex = true
                 end
             end
 
@@ -100,7 +79,7 @@ end
 
 function getLTI(sc::SpacecraftElement; attitudeOnly=false)
     M, D, K = getMDK(sc)
-    nf = typeof(sc) == FlexibleElement ? length(sc.freq) : 0
+    nf = sc.isFlex ? length(sc.freq) : 0
     if attitudeOnly
         nu = 3
         Bu = [zeros(3, nu); I; zeros(nf, nu)]
@@ -117,7 +96,7 @@ function getLTI(sc::SpacecraftElement; attitudeOnly=false)
 end
 
 function getMDK(sc::SpacecraftElement)
-    if typeof(sc) == RigidElement
+    if !sc.isFlex
         return [sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O], zeros(6, 6), zeros(6, 6)
     end
     M = [[sc.mass*I zeros(3, 3); zeros(3, 3) sc.inertiaG_O] sc.LG_O'; sc.LG_O I]

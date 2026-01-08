@@ -18,7 +18,7 @@ function mainSc()
     θ = 90π/180
     mass = 212.0
     geom = Cuboid(6.648, 14.64, 0.015)
-    inertiaG_E = [4730 -4.33 -0.026; -4.33 728 28; -0.026 28 5460]
+    inertiaG_E = [4730 -4.33 -0.026; -4.33 731 28; -0.026 28 5460]
     posEG_E = [0.0; 9.95; 0.02]
 
     sa1 = SpacecraftElement(;
@@ -35,8 +35,8 @@ function mainSc()
         R_OE=dcm_fromAxisAngle(3, π)*dcm_fromAxisAngle(2, -θ),
     )
 
-    sc, model = build([cb; sa1; sa2]; plotModel=true)
+    sc, model = build(cb, sa1, sa2; plotModel=true)
 
-    return rayTracingSrp(model, [-1.0; 0.0; 0.0]; Nrays=100_000)
+    # return rayTracingSrp(model, [-1.0; 0.0; 0.0]; Nrays=100_000)
 end
 mainSc()

@@ -6,6 +6,7 @@ using JTools
 using LinearAlgebra
 using GLMakie
 using Quats
+using GeometryBasics
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
 export translateInertia!, translateInertiaToCoM!, rotateInertia!, invertInertia!

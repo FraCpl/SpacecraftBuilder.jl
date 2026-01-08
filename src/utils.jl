@@ -98,23 +98,26 @@ function verifyInertia(ID, J; verbose=true)
     SYMMETRY_TOL = 1e-8
     Jxx, Jyx, Jzx, Jxy, Jyy, Jzy, Jxz, Jyz, Jzz = J
 
-    if abs(Jxy - Jyx) > SYMMETRY_TOL
+    val = abs(Jxy - Jyx)
+    if val > SYMMETRY_TOL
         if verbose
-            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxy ≠ Jyx")
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxy ≠ Jyx ($val)")
         end
         return false
     end
 
-    if abs(Jxz - Jzx) > SYMMETRY_TOL
+    val = abs(Jxz - Jzx)
+    if val > SYMMETRY_TOL
         if verbose
-            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxz ≠ Jzx")
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jxz ≠ Jzx ($val)")
         end
         return false
     end
 
-    if abs(Jyz - Jzy) > SYMMETRY_TOL
+    val = abs(Jyz - Jzy)
+    if val > SYMMETRY_TOL
         if verbose
-            @warn("Warning: the inertia matrix of $ID is not symmetric: Jyz ≠ Jzy")
+            @warn("Warning: the inertia matrix of $ID is not symmetric: Jyz ≠ Jzy ($val)")
         end
         return false
     end
@@ -122,22 +125,28 @@ function verifyInertia(ID, J; verbose=true)
     for ej in eigvals(J)
         if ej < 0 || !isreal(ej)
             if verbose
-                @warn("Warning: the inertia matrix of $ID is not definite positive")
+                @warn("Warning: the inertia matrix of $ID is not definite positive ($ej)")
             end
             return false
         end
     end
 
-    if !(Jxx ≤ Jyy + Jzz && Jyy ≤ Jxx + Jzz && Jzz ≤ Jxx + Jyy)
+    val1 = Jyy + Jzz - Jxx
+    val2 = Jxx + Jzz - Jyy
+    val3 = Jxx + Jyy - Jzz
+    if !(val1 ≥ 0 && val2 ≥ 0 && val3 ≥ 0)
         if verbose
-            @warn("Warning: the diagonal terms of the inertia matrix of $ID are not physical")
+            @warn("Warning: the diagonal terms of the inertia matrix of $ID are not physical ($val1, $val2, $val3)")
         end
         return false
     end
 
-    if !(abs(Jxy) ≤ Jzz/2 && abs(Jxz) ≤ Jyy/2 && abs(Jyz) ≤ Jxx/2)
+    val1 = Jzz/2 - abs(Jxy)
+    val2 = Jyy/2 - abs(Jxz)
+    val3 = Jxx/2 - abs(Jyz)
+    if !(val1 ≥ 0 && val2 ≥ 0 && val3 ≥ 0)
         if verbose
-            @warn("Warning: the non-diagonal terms of the inertia matrix of $ID are not physical")
+            @warn("Warning: the non-diagonal terms of the inertia matrix of $ID are not physical ($val1, $val2, $val3)")
         end
         return false
     end
