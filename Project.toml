@@ -16,6 +16,8 @@ Quats = {url = "https://github.com/FraCpl/Quats.jl", rev = "v0.1.0"}
 
 [compat]
 GeometryBasics = "0.5.10"
+JTools = "0.1.0"
+Quats = "0.1.0"
 julia = "1.10"
 
 [extras]
