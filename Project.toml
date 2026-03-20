@@ -11,8 +11,8 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Quats = "faa667c8-0f2e-4834-a931-554d4b02f32e"
 
 [sources]
-JTools = {rev = "master", url = "C:\\Users\\francesco capolupo\\OneDrive - ESA\\Desktop\\Work\\Tools\\ToolsJulia\\Packages\\JTools"}
-Quats = {rev = "master", url = "C:\\Users\\francesco capolupo\\OneDrive - ESA\\Desktop\\Work\\Tools\\ToolsJulia\\Packages\\Quats"}
+JTools = {rev = "master", url = "https://github.com/FraCpl/JTools.jl"}
+Quats = {rev = "master", url = "https://github.com/FraCpl/Quats.jl"}
 
 [compat]
 GeometryBasics = "0.5.10"
