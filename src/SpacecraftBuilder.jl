@@ -9,7 +9,7 @@ using Quats
 using GeometryBasics
 
 export verifyInertia, randomInertia, translateInertia, rotateInertia, massMatrix2mci, translateInertiaToCoM
-export translateInertia!, translateInertiaToCoM!, rotateInertia!, invertInertia!
+export translateInertia!, translateInertiaToCoM!, rotateInertia!, invertInertia!, q_rotateInertia!
 include("utils.jl")
 
 export NoGeometry, PlanarPlate, Cuboid, Cylinder, Sphere

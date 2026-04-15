@@ -44,6 +44,12 @@ end
     return nothing
 end
 
+@inline function q_rotateInertia!(J_B, q_BA, J_A)
+    qs, qx, qy, qz = q_BA
+    R_BA = q_toDcmCore(qs, qx, qy, qz)
+    return rotateInertia!(J_B, R_BA, J_A)
+end
+
 # @inline function rotateInertia(R_BA::SMatrix{3, 3, T}, J_A::SMatrix{3, 3, T}) where T
 #     return R_BA*J_A*transpose(R_BA)
 # end
