@@ -38,9 +38,9 @@ function SpacecraftElement(;
     posOG_O = posOE_O + R_OE*posEG_E
 
     # Compute inertias
-    if any(inertiaE_E .!= 0.0)
+    if any(!iszero, inertiaE_E)
         inertiaG_E .= translateInertiaToCoM(inertiaE_E, mass, posEG_E)
-    elseif any(inertiaG_E .!= 0.0)
+    elseif any(!iszero, inertiaG_E)
         inertiaE_E .= translateInertia(inertiaG_E, mass, posEG_E)
     else
         inertiaG_E .= elementInertiaG_E(geometry, mass)
