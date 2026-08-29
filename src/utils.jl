@@ -197,16 +197,19 @@ function verifyResidualMass(ID, m, JG, LG; verbose=true)
     return true
 end
 
-function randomInertia(Jnom, errPerc::Float64, rng)
-    randomInertia(Jnom, errPerc*randn(rng, 3))::Matrix{Float64}
+# Caution, when randomly sampling both the inertia and the CoM position, one must use the
+# inertia at the CoG in the random sampling process, so that both JG and rOG can be sampled
+# independently and still yield a physical configuration.
+function randomInertia(JnomG, errPerc::Float64, rng)
+    randomInertia(JnomG, errPerc*randn(rng, 3))::Matrix{Float64}
 end
 
-function randomInertia(Jnom, errPerc::Float64)
-    randomInertia(Jnom, errPerc*randn(3))::Matrix{Float64}
+function randomInertia(JnomG, errPerc::Float64)
+    randomInertia(JnomG, errPerc*randn(3))::Matrix{Float64}
 end
 
-function randomInertia(Jnom::Matrix{Float64}, err::Vector{Float64})::Matrix{Float64}
-    Jdiag, R = eigen(Jnom)
+function randomInertia(JnomG::Matrix{Float64}, err::Vector{Float64})::Matrix{Float64}
+    Jdiag, R = eigen(JnomG)
     A = (1.0 .+ err) .* (sum(Jdiag)/2 .- Jdiag)
     return R*diagm(sum(A) .- A)*R'
 end
