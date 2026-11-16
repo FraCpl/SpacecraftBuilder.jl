@@ -82,7 +82,7 @@ end
     JA_X[2, 1] = JA_X[1, 2]
     JA_X[3, 1] = JA_X[1, 3]
     JA_X[3, 2] = JA_X[2, 3]
-    return nothing
+    return JA_X
 end
 
 # @inline function translateInertia(JG_X::SMatrix{3, 3, T}, mass, posGA_X::SVector{3, T}) where T
@@ -90,11 +90,7 @@ end
 # end
 
 @inline translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
-
-@inline function translateInertiaToCoM!(JG_X, JA_X, mass, posGA_X)
-    translateInertia!(JG_X, JA_X, -mass, posGA_X)
-    return nothing
-end
+@inline translateInertiaToCoM!(JG_X, JA_X, mass, posGA_X) = translateInertia!(JG_X, JA_X, -mass, posGA_X)
 
 @inline translateModalMatrix(LA_X, posAB_X) = LA_X*[I crossmat(posAB_X); zeros(3, 3) I]     # LB_X
 
