@@ -1,26 +1,18 @@
-@inline function invertInertia!(invJ, J)
+@inline function invertInertiaCore(J)
     Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = J
     dj = 1/(Jxx*(Jyy*Jzz - (Jyz^2)) - Jxy*(Jxy*Jzz - Jxz*Jyz) + (Jxy*Jyz - Jxz*Jyy)*Jxz)
-    invJ[1, 1] = (Jyy*Jzz - Jyz*Jyz)*dj
-    invJ[1, 2] = (-Jxy*Jzz + Jxz*Jyz)*dj
-    invJ[1, 3] = (Jxy*Jyz - Jxz*Jyy)*dj
-    invJ[2, 2] = (Jxx*Jzz - Jxz*Jxz)*dj
-    invJ[2, 3] = (-Jxx*Jyz + Jxy*Jxz)*dj
-    invJ[3, 3] = (Jxx*Jyy - Jxy*Jxy)*dj
 
-    invJ[2, 1] = invJ[1, 2]
-    invJ[3, 1] = invJ[1, 3]
-    invJ[3, 2] = invJ[2, 3]
-    return nothing
+    # Compute inv(J)
+    Ixx = (Jyy*Jzz - Jyz*Jyz)*dj
+    Ixy = (-Jxy*Jzz + Jxz*Jyz)*dj
+    Ixz = (Jxy*Jyz - Jxz*Jyy)*dj
+    Iyy = (Jxx*Jzz - Jxz*Jxz)*dj
+    Iyz = (-Jxx*Jyz + Jxy*Jxz)*dj
+    Izz = (Jxx*Jyy - Jxy*Jxy)*dj
+    return Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz
 end
 
-@inline function rotateInertia(R_BA, J_A)
-    J_B = similar(J_A)
-    rotateInertia!(J_B, R_BA, J_A)
-    return J_B
-end
-
-@inline function rotateInertia!(J_B, R_BA, J_A)
+@inline function rotateInertiaCore(R_BA, J_A)
     # This implements J_B = R_BA*J_A*R_AB
     r11, r21, r31, r12, r22, r32, r13, r23, r33 = R_BA
     Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = J_A
@@ -32,17 +24,37 @@ end
     c5 = Jxy*r21 + Jyy*r22 + Jyz*r23
     c6 = Jxz*r21 + Jyz*r22 + Jzz*r23
 
-    J_B[1, 1] = c1*r11 + c2*r12 + c3*r13
-    J_B[1, 2] = c1*r21 + c2*r22 + c3*r23
-    J_B[1, 3] = c1*r31 + c2*r32 + c3*r33
-    J_B[2, 2] = c4*r21 + c5*r22 + c6*r23
-    J_B[2, 3] = c4*r31 + c5*r32 + c6*r33
-    J_B[3, 3] = (Jxx*r31 + Jxy*r32 + Jxz*r33)*r31 + (Jxy*r31 + Jyy*r32 + Jyz*r33)*r32 + (Jxz*r31 + Jyz*r32 + Jzz*r33)*r33
-    J_B[2, 1] = J_B[1, 2]
-    J_B[3, 1] = J_B[1, 3]
-    J_B[3, 2] = J_B[2, 3]
-    return nothing
+    # Compute J_B
+    Ixx = c1*r11 + c2*r12 + c3*r13
+    Ixy = c1*r21 + c2*r22 + c3*r23
+    Ixz = c1*r31 + c2*r32 + c3*r33
+    Iyy = c4*r21 + c5*r22 + c6*r23
+    Iyz = c4*r31 + c5*r32 + c6*r33
+    Izz = (Jxx*r31 + Jxy*r32 + Jxz*r33)*r31 + (Jxy*r31 + Jyy*r32 + Jyz*r33)*r32 + (Jxz*r31 + Jyz*r32 + Jzz*r33)*r33
+    return Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz
 end
+
+# This implements JA_X = JG_X - mass*crossMat(posGA_X)^2
+@inline function translateInertiaCore(JG_X, mass, posGA_X)
+    Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = JG_X
+    x, y, z = posGA_X
+
+    # Compute JA_X
+    Ixx = Jxx + mass*(y*y + z*z)
+    Ixy = Jxy - mass*x*y
+    Ixz = Jxz - mass*x*z
+    Iyy = Jyy + mass*(x*x + z*z)
+    Iyz = Jyz - mass*y*z
+    Izz = Jzz + mass*(x*x + y*y)
+    return Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz
+end
+
+@inline invertInertia(J::Matrix3x3) = invertInertiaCore(J)
+@inline invertInertia!(invJ, J) = toMatrix!(invJ, invertInertiaCore(J))
+
+@inline rotateInertia(R_BA::Matrix3x3, J_A::Matrix3x3) = rotateInertiaCore(R_BA, J_A)
+@inline rotateInertia(R_BA, J_A::AbstractMatrix) = toMatrix(rotateInertiaCore(R_BA, J_A))
+@inline rotateInertia!(J_B, R_BA, J_A) = toMatrix!(J_B, rotateInertiaCore(R_BA, J_A))
 
 @inline function q_rotateInertia!(J_B, q_BA, J_A)
     qs, qx, qy, qz = q_BA
@@ -62,32 +74,8 @@ end
 #
 # To get JG from JA, provide a negative mass!
 # JG = translateInertia(JA,-mass,posGA)
-@inline function translateInertia(JG_X, mass, posGA_X)
-    JA_X = similar(JG_X)
-    translateInertia!(JA_X, JG_X, mass, posGA_X)
-    return JA_X
-end
-
-@inline function translateInertia!(JA_X, JG_X, mass, posGA_X)
-    # This implements JA_X = JG_X - mass*crossMat(posGA_X)^2
-    Jxx, Jxy, Jxz, ~, Jyy, Jyz, ~, ~, Jzz = JG_X
-    x, y, z = posGA_X
-
-    JA_X[1, 1] = Jxx + mass*(y*y + z*z)
-    JA_X[1, 2] = Jxy - mass*x*y
-    JA_X[1, 3] = Jxz - mass*x*z
-    JA_X[2, 2] = Jyy + mass*(x*x + z*z)
-    JA_X[2, 3] = Jyz - mass*y*z
-    JA_X[3, 3] = Jzz + mass*(x*x + y*y)
-    JA_X[2, 1] = JA_X[1, 2]
-    JA_X[3, 1] = JA_X[1, 3]
-    JA_X[3, 2] = JA_X[2, 3]
-    return JA_X
-end
-
-# @inline function translateInertia(JG_X::SMatrix{3, 3, T}, mass, posGA_X::SVector{3, T}) where T
-#     return JG_X - mass*crossMatSq(posGA_X)
-# end
+@inline translateInertia(JG_X, mass, posGA_X) = toMatrix(translateInertiaCore(JG_X, mass, posGA_X))
+@inline translateInertia!(JA_X, JG_X, mass, posGA_X) = toMatrix!(JA_X, translateInertiaCore(JG_X, mass, posGA_X))
 
 @inline translateInertiaToCoM(JA_X, mass, posGA_X) = translateInertia(JA_X, -mass, posGA_X)     # JG_X
 @inline translateInertiaToCoM!(JG_X, JA_X, mass, posGA_X) = translateInertia!(JG_X, JA_X, -mass, posGA_X)
